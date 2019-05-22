@@ -1,21 +1,25 @@
-import { PoolClient, Client, Pool } from "pg";
+import { PoolClient } from "pg";
 import { connectionPool } from ".";
-import { sqlUserToJsUser, jsUserToSqlUser, sqlReimbursementToJs, jsReimbToSqlReimb } from "../util/user-converter";
-import { roles, reimbTypes } from "../state";
-import { UserDTO } from "../dto/user.dto";
+import { jsUserToSqlUser } from "../util/user-converter";
 import { sendError } from "../util/error";
-import { Resolver } from "dns";
-import moment = require("moment");
+import bcrypt from 'bcrypt'
 
-
+//Login with hashed password comparison
 export async function login(username:string, password:string){
     let client:PoolClient
-    let result
+    let result, match
     try{
         client = await connectionPool.connect()      
         result = await client.query(`SELECT * FROM "ers".users u INNER JOIN "ers".roles r
-                                    ON u.roleId = r.roleId WHERE u.username=$1 AND u.pass=$2`,
-                                            [username, password])
+                                    ON u.roleId = r.roleId WHERE u.username=$1`,
+                                            [username])
+        if(result.rows && !result.rows.length)
+            return sendError(true, 'Incorrect username')
+        
+        match = await bcrypt.compare(password, result.rows[0].pass)
+
+        if(!match)
+            return sendError(true, 'Invalid credentials')
 
         return result
     }catch(e){
@@ -25,15 +29,43 @@ export async function login(username:string, password:string){
     }
 }
 
-export async function getAllUsers(){
+//Get all users with optional pagaing and sorting
+export async function getAllUsers(page){
     let client:PoolClient
-    let result
+    let result, query, count
     try{
         client = await connectionPool.connect()
-        let query = 'SELECT * FROM "ers".users u INNER JOIN "ers".roles r ON u.roleid = r.roleid'
-        result = await client.query(query)
 
-        return result
+        query = `SELECT * FROM "ers".users u INNER JOIN "ers".roles r ON u.roleid = r.roleid `
+        let inc = 1
+        let queryArray = []
+
+        if(!page.sort){
+            query += `ORDER BY u.userid `
+        }
+
+        if(!page.limit && !page.offset){
+            query += `LIMIT 10 OFFSET 0 `
+        } else if (page.limit && !page.offset){
+            query += `LIMIT $${inc} `
+            queryArray.push(page.limit)
+            inc++
+        } else if(page.limit && page.offset){
+            query += `LIMIT $${inc} OFFSET $${inc+1} `
+            queryArray.push(page.limit, page.offset)
+            inc++
+        }
+
+        result = await client.query(query, queryArray)
+
+        if(page.sort && result.rows && result.rows.length){
+            let sortBy = page.sort
+            result.rows.sort((u1,u2) => (u1[sortBy] < u2[sortBy])? -1 : 
+                                            (u1[sortBy] > u2[sortBy])? 1 : 0);
+        }
+
+        count = await client.query(`SELECT COUNT(*) FROM "ers".users`)
+        return [result,count]
 
     }catch(e){
         return sendError(true, 'Internal error')
@@ -42,6 +74,7 @@ export async function getAllUsers(){
     }
 }
 
+//Find user by id
 export async function getUserById(id){
     let client:PoolClient
     let result
@@ -59,13 +92,50 @@ export async function getUserById(id){
     }
 }
 
+//insert a new user in the database
+export async function createUser(body){
+    let client:PoolClient
+    let role = 'trainee'
+    let roleId, query, result, getNewUser, genSalt, hashString
+
+    try{
+        client = await connectionPool.connect()
+        roleId = await client.query(`SELECT * FROM "ers".roles WHERE userrole=$1`,[role])        
+
+    if(roleId.rows && roleId.rows.length)
+        body.role = roleId.rows[0].roleid    
+
+    genSalt = await bcrypt.genSalt()
+    
+    hashString = await bcrypt.hash(body.password, genSalt)     
+    
+    query = `INSERT INTO "ers".users(username, pass, firstname, lastname, email, roleid)
+            VALUES($1,$2,$3,$4,$5,$6) RETURNING userid`
+    
+    result = await client.query(query, [body.username, hashString, body.firstName, body.lastName,
+                body.email, body.role])
+        
+    if(result.rows && !result.rows.length){
+        return sendError(true, 'User creation error')
+    }
+
+    return getUserById(result.rows[0].userid)
+
+    }catch(e){
+        return sendError(true, 'Internal error')
+    }finally{
+        client && client.release()
+    }
+}
+
+//Update existing user
 export async function patchUser(body){
     let client:PoolClient
     let emptyQuery = true
     try {      
         client = await connectionPool.connect()
         
-        let userid = await client.query('SELECT userid FROM "ers".users WHER userid=$1',[body.userId])       
+        let userid = await client.query('SELECT userid FROM "ers".users WHERE userid=$1',[body.userId])               
 
         if(userid && !userid.rows.length){
             return sendError(true, 'Invalid user id')
@@ -82,22 +152,26 @@ export async function patchUser(body){
 
         let userdto = jsUserToSqlUser(body)
         let query = `UPDATE "ers".users SET `
-
+        let inc = 1
+        let queryArray = []
         for(let key in userdto){
             if(key !== 'userId' && userdto[key]){
-                query += `${key} = '${userdto[key]}', `
+                query += `${key} = $${inc}, `
+                inc++
+                queryArray.push(userdto[key])
                 emptyQuery = false
             }
         }
 
+        queryArray.push(body.userId)
         query = query.replace(/,\s*$/, '')
-        query += ` WHERE userid=$1`
+        query += ` WHERE userid=$${inc}`        
 
         if(emptyQuery){
             return sendError(true, 'Nothing to patch')
         }
 
-        let result = await client.query(query,[body.userId])
+        let result = await client.query(query,queryArray)
         if(!result.rowCount){
             return sendError(true, 'Nothing patched')
         }
@@ -105,194 +179,6 @@ export async function patchUser(body){
         return await getUserById(body.userId)
 
     }catch(e){
-        return sendError(true, 'Internal error')
-    }finally{
-        client && client.release()
-    }
-}
-
-export async function getReimbursementByStatus(req){
-    let client:PoolClient
-    let statusId:number = +req.params.statusId
-    let {start, end}  = req.query
-    let reimbByStatus
-    try{     
-        client = await connectionPool.connect()
-        
-        if(!start && !end){    
-            reimbByStatus = await client.query(`SELECT * FROM "ers".reimbursements WHERE statusid=$1`,
-                                            [statusId])
-        } else if(start && !end){  
-            reimbByStatus = await client.query(`SELECT * FROM "ers".reimbursements WHERE statusid=$1
-                                        AND dateSubmitted>=$2 ORDER BY dateSubmitted`,[statusId, start])
-            
-        } else if(!start && end){ 
-            reimbByStatus = await client.query(`SELECT * FROM "ers".reimbursements WHERE statusid=$1 AND 
-                                            dateResolved<=$2 ORDER BY dateResolved`,[statusId, end])
-        } else {
-            reimbByStatus = await client.query(`SELECT * FROM "ers".reimbursements WHERE statusid=$1 AND
-                                        dateSubmitted>=$2 AND dateResolved<=$3 
-                                        ORDER BY dateSubmitted, dateResolved`,[statusId, start, end])
-        }
-
-        return reimbByStatus
-
-    }catch(e){
-        return sendError(true, 'Internal error')
-    }finally{
-        client && client.release()
-    }
-}
-
-export async function getReimbursementByUser(req){
-    let client:PoolClient
-    let userId:number = +req.params.userId
-    let {start, end} = req.query
-    let reimbByUser
-    try{    
-        client = await connectionPool.connect()
-
-        if(!start && !end){    
-            reimbByUser = await client.query(`SELECT * FROM "ers".reimbursements WHERE author=$1`,[userId])
-        } else if(start && !end){  
-            reimbByUser = await client.query(`SELECT * FROM "ers".reimbursements WHERE author=$1
-                                        AND dateSubmitted >= $2`,[userId,start])
-        } else if(!start && end){ 
-            reimbByUser = await client.query(`SELECT * FROM "ers".reimbursements WHERE author=$1
-                                        AND dateResolved<=$2`,[userId,end]) 
-        } else {
-            reimbByUser = await client.query(`SELECT * FROM "ers".reimbursements WHERE author=$1
-                                        AND dateSubmitted >=$2 AND dateResolved<=$3`,[userId,start, end])
-        }
-
-        return reimbByUser
-
-    }catch(e){
-        return sendError(true, 'Internal error')
-    }finally{
-        client && client.release()
-    }
-}
-
-export async function postReimbursement(req){
-    let client:PoolClient
-    let {body} = req  
-    let status = 'Pending'
-    let statusId, reimbType, resolver, result, getReimb  
-
-    try{
-        client = await connectionPool.connect()
-        
-    if(body.type !== undefined){
-        reimbType = await client.query(`SELECT * FROM "ers".reimbursementTypes WHERE typeId=$1`,
-                                    [body.type])
-        
-        if(reimbType && !reimbType.rows.length)
-            return sendError(true, 'Invalid reimbursement type value')
-    }
-
-    resolver = await client.query(`SELECT userId FROM "ers".users u INNER JOIN "ers".roles r 
-                                ON u.roleId = r.roleId WHERE r.userrole=$1`,[req.authorized])
-
-    if(resolver && resolver.rows.length)
-        body.resolver = resolver.rows[0].userid
-
-    statusId = await client.query(`SELECT * FROM "ers".reimbursementStatus WHERE status=$1`,[status])
-
-    if(statusId && statusId.rows.length)
-        body.status = statusId.rows[0].statusid  
-    
-    let query = `INSERT INTO "ers".reimbursements (author, amount, dateSubmitted, dateResolved,
-                description, resolver, statusId, typeId) VALUES($1,$2,$3,$4,$5,$6,$7,$8)
-                RETURNING reimbursementid`
-
-    result = await client.query(query,[body.author, body.amount, body.dateSubmitted, body.dateResolved,
-                        body.description, body.resolver, body.status, body.type])
-    
-    if(result && !result.rows.length){
-        return sendError(true, 'Reimbursement insertion error')
-    }  
-
-    getReimb = await client.query(`SELECT * FROM "ers".reimbursements WHERE reimbursementid=$1`,
-                                    [result.rows[0].reimbursementid])
-        
-    return getReimb
-
-    }catch(e){
-        return sendError(true,'Internal error')
-    }finally{
-        client && client.release()
-    }
-}
-
-export async function patchReimbursement(req){
-    let client:PoolClient
-    let {body} = req
-    let emptyQuery = true
-    let getReimb
-
-    try{
-        client = await connectionPool.connect()
-
-        let reimbId = await client.query(`SELECT reimbursementid FROM "ers".reimbursements 
-                                    WHERE reimbursementid=$1`,[+body.reimbursementId])
-        
-        if(reimbId && !reimbId.rows.length)
-            return sendError(true, 'Reimbursement id does not exist')
-
-        if(body.resolver !== undefined){
-            let reimbResolv = await client.query(`SELECT * FROM "ers".users u INNER JOIN "ers".roles r 
-            ON u.userid = $1 AND r.userrole=$2`,[+body.resolver, req.authorized])
-            
-            if(reimbResolv && !reimbResolv.rows.length)
-                return sendError(true, 'Invalid resolver value.')
-        }
-
-        if(body.status !== undefined){
-            let reimbStatus = await client.query(`SELECT * FROM "ers".reimbursementStatus 
-                        WHERE statusId = $1`,[+body.status])
-            
-            if(reimbStatus && !reimbStatus.rows.length)
-                return sendError(true, 'Invalid reimbursement status value.')
-        }
-
-        if(body.type !== undefined){
-            let reimbType = await client.query(`SELECT * FROM "ers".reimbursementTypes 
-                        WHERE typeId = $1`,[+body.type])
-            
-            if(reimbType && !reimbType.rows.length)
-                return sendError(true, 'Invalid reimbursement type value.')
-        }
-        
-        let reimbdto =  jsReimbToSqlReimb(body)
-        
-        let query = `UPDATE "ers".reimbursements SET `
-
-        for(let key in reimbdto){
-            if(key !== 'dateSubmitted' && key !== 'reimbursementId' && reimbdto[key]){                  
-                query += `${key} = '${reimbdto[key]}', `
-                emptyQuery = false
-            }
-        }
-
-        query = query.replace(/,\s*$/, '')
-        query += ` WHERE reimbursementid=$1`
-
-        if(emptyQuery){
-            return sendError(true, 'Nothing to patch')
-        }
-
-        let result = await client.query(query,[body.reimbursementId])
-        
-        if(!result.rowCount){
-            return sendError(true, 'Nothing patched')
-        }
-    
-        getReimb = await client.query(`SELECT * FROM "ers".reimbursements WHERE reimbursementid=$1`,
-                                        [body.reimbursementId])            
-        return getReimb
-
-    }catch(e){        
         return sendError(true, 'Internal error')
     }finally{
         client && client.release()

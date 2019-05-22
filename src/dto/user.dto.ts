@@ -1,4 +1,4 @@
-
+//class to convert user object
 export class UserDTO{
     userId:number
     username:string
@@ -20,6 +20,7 @@ export class UserDTO{
         }
 }
 
+//class to convert reimbursement object 
 export class ReimbursementDTO{
     reimbursementId:number
     author:number

@@ -1,5 +1,6 @@
 import session from 'express-session'
 
+//session object
 const sess =  {
     secret: 'secret',
     cookie: { secure: false },
@@ -8,3 +9,8 @@ const sess =  {
 }
 
 export const sessionMiddleware = session(sess)
+
+//JWT key object
+export const secretKey = {
+    secret: process.env['ERS_JWT_KEY']
+}

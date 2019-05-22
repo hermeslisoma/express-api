@@ -1,30 +1,35 @@
 import express from 'express'
-import { users, roles } from '../state'
 import { authorization } from '../middleware/auth-middleware';
-import { User } from '../models/user'
-import { validationGetUser, validationPatchUser } from '../middleware/validation-middleware';
+import { validationGetUser, validationPatchUser, validationPageUser } from '../middleware/user-validation-middleware';
 import { getAllUsersService, getUserByIdService, patchUserService } from '../service/user.service';
 
 export const userRouter = express.Router()
 
-userRouter.get('',[authorization('finance-manager'), async (req,res) => {
-    let users = await getAllUsersService()
+//Endpoint to get all users with
+//prior Authorization, validation middleware
+//optional query string for paging and sorting
+userRouter.get('',[authorization('finance-manager'), validationPageUser(), async (req,res) => {
+    let {query} = req
+    let users = await getAllUsersService(query)
+
     if (users['errorStatus'])
         res.status(400).send(users['errorMessage'])    
-    else res.json(users)
+    else res.json([users[0],+users[1]])
 }])
 
+//Endpoint to patch a user with
+//prior Authorization and validation middleware
 userRouter.patch('',[authorization('admin'), validationPatchUser(), async (req,res) => {
     let {body} = req
     let user = await patchUserService(body)
 
-    if(user['errorStatus']){
+    if(user['errorStatus'])
         res.status(400).send(user['errorMessage'])
-    } else {
-    res.json(user)
-    }
+    else res.json(user)
 }])
 
+//Endpoint to get a user by id with
+//prior Authorization, validation middlewares
 userRouter.get('/:id',[authorization('finance-manager','id'), validationGetUser(), async (req,res) => {
     let id = +req.params.id
     let user = await getUserByIdService(id)
@@ -33,5 +38,3 @@ userRouter.get('/:id',[authorization('finance-manager','id'), validationGetUser(
         res.status(400).send(user['errorMessage'])    
     else res.json(user)   
 }])
-
-

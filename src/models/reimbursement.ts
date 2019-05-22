@@ -1,19 +1,22 @@
-import {ReimbursementStatus} from './reimbursement-status'
+import { ReimbursementStatus } from "./reimbursement-status";
+import { ReimbursementType } from "./reimbursement-type";
+import { User } from "./user";
 
+//class for reimbursement objects
 export class Reimbursement{
     reimbursementId: number // primary key
-	author: number  // foreign key -> User, not null
+	author: User  // foreign key -> User, not null
 	amount: number  // not null
-    dateSubmitted: number // not null
-    dateResolved: number // not null
+    dateSubmitted: any // not null
+    dateResolved: any // not null
     description: string // not null
     resolver: number // foreign key -> User
-    status: number // foreign key -> ReimbursementStatus, not null
-    type: number // foreign key -> ReimbursementType
+    status: ReimbursementStatus // foreign key -> ReimbursementStatus, not null
+    type: ReimbursementType // foreign key -> ReimbursementType
 
-    constructor(reimbursementId:number = 0, author:number = 0, amount:number = 0, 
-                dateSubmitted:number = new Date().getTime(), dateResolved:number = new Date().getTime(), 
-                description:string = '', resolver:number = 2, status:number = 1, type:number = 0){
+    constructor(reimbursementId:number, author:User, amount:number, 
+                dateSubmitted:any, dateResolved:any, 
+                description:string, resolver:number, status:ReimbursementStatus, type:ReimbursementType){
             this.reimbursementId = reimbursementId
             this.author = author
             this.amount = amount
@@ -24,4 +27,19 @@ export class Reimbursement{
             this.status = status
             this.type = type
         }
+
+//static method to get reimbursement properties
+    public static getProp(){
+        return {
+            reimbursementId: 'reimbursementid',
+            author: 'author',
+            amount: 'amount',
+            dateSubmitted: 'datesubmitted',
+            dateResolved: 'dateresolved',
+            description: 'description',
+            resolver: 'resolver',
+            status: 'statusid',
+            type: 'typeid'
+        }
+    }
 }

@@ -1,5 +1,6 @@
 import { Role } from "./role";
 
+//class for user objects
 export class User{
     userId: number// primary key
 	username: string // not null, unique
@@ -17,5 +18,18 @@ export class User{
         this.lastName = lastName
         this.email = email
         this.role = role
+    }
+
+//static method to get user properties
+    public static getProp(){
+        return {
+            userId: 'userid',
+            username: 'username',
+            password: 'pass',
+            firstName: 'firstname',
+            lastName: 'lastname',
+            email: 'email',
+            role: 'roleid'
+        }
     }
 }

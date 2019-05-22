@@ -1,17 +1,47 @@
-import { reimb, users, reimbTypes, reimbStatus, roles } from '../state';
 import { Reimbursement } from '../models/reimbursement';
 import moment from 'moment'
-import * as EmailValidator from 'email-validator';
 
-export function validationPostLogin(){
-    return (req,res,next) => {
-        const {username, password} = req.body
+//Middleware to validate user input for pagination and sorting
+export function validationPageReimbursement(){
+    return (req, res, next) => {
+        let {query} = req
         let error = false
         let msgError = ''
-
-        if(!username || !password || typeof(username) !== 'string'){
+        let sort = false
+        
+        if(query.limit && isNaN(+query.limit)){
             error = true
-            msgError += 'Invalid username or password.'
+            msgError += 'limit is not a number. '
+        }
+        
+        if(query.limit && (query.limit < 0 || query.limit > 20)){
+            error = true
+            msgError += 'Limit number should be between 0 and 20. '
+        }
+        
+        if(query.offset && isNaN(+query.offset)){
+            error = true
+            msgError += 'offset is not a number. '
+        }
+
+        if(query.offset && query.offset < 0){
+            error = true
+            msgError += 'offset must be positive. '
+        }     
+
+        if(query.sort){
+            let reimbSort = Reimbursement.getProp()
+            for(let key in reimbSort){
+                if(query.sort === key){
+                    query.sort = reimbSort[key]
+                    sort = true
+                }
+            }
+
+            if(!sort){
+                error = true
+                msgError += 'Sort field does not exist. '
+            }
         }
 
         if(!error){
@@ -22,54 +52,7 @@ export function validationPostLogin(){
     }
 }
 
-export function validationGetUser(){
-    return (req,res,next) =>{
-        let id = +req.params.id
-        let error = false
-        let msgError = ''
-
-        if(isNaN(id)){
-            error = true
-            msgError += 'id: is not a number. '
-        }
-
-        if(!error){
-            next()
-        } else {
-            res.status(400).send(msgError)
-        }
-    }
-}
-
-export function validationPatchUser(){
-    return (req,res,next) => {
-        let {body} = req
-        let error = false
-        let msgError = ''
-
-        if (!body.userId){
-            error = true
-            msgError += 'Missing user id. '
-        }
-
-        if(body.username && typeof(body.username) !== 'string'){
-            error = true
-            msgError += 'Invalid username. '
-        }
-
-        if(body.email && !EmailValidator.validate(body.email)){
-            error = true
-            msgError += 'Invalid email. '
-        }
-
-        if(!error){
-            next()
-        } else {
-            res.status(400).send(msgError)
-        }
-    }
-}
-
+//Middleware for validation of user input to get reimbursements
 export function validationGetReimbursement(reimbId:string){
     return (req,res,next) => {
         let id:number = +req.params[reimbId]
@@ -95,6 +78,7 @@ export function validationGetReimbursement(reimbId:string){
     }
 }
 
+//Middleware for validation of user input to post reimbursement
 export function validationPostReimbursement(){
     return (req, res, next) => {
         let {body} = req
@@ -107,7 +91,7 @@ export function validationPostReimbursement(){
             msgError += 'Invalid date format. '
         }
 
-        req.newReimbursement = new Reimbursement()
+        req.newReimbursement = Reimbursement.getProp()
         
         for(let key in req.newReimbursement){
             if(!propExcept.includes(key) && !body[key]){
@@ -126,6 +110,7 @@ export function validationPostReimbursement(){
     }
 }
 
+//Middleware for validation of user input to update reimbursement
 export function validationPatchReimbursement(){
     return (req, res, next) => {
         let {body} = req

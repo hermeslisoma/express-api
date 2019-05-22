@@ -1,64 +1,49 @@
-import { login, getAllUsers, getUserById, patchUser, getReimbursementByStatus, getReimbursementByUser, postReimbursement, patchReimbursement } from "../dao/user.dao";
-import { reimb } from "../state";
-import { sqlReimbursementToJs, sqlUserToJsUser } from "../util/user-converter";
+import { login, getAllUsers, getUserById, patchUser, createUser } from "../dao/user.dao";
+import { sqlUserToJsUser } from "../util/user-converter";
 import { sendError } from "../util/error";
 
-
+//Service to handle response after login
 export async function loginService(username:string, password:string){
-    let user = await login(username, password)
-    if(user && user.rows.length)
+    let user = await login(username, password)    
+
+    if(!user['errorStatus'])
         return sqlUserToJsUser(user.rows[0])
-    else return sendError(true, 'Invalid Credentials')
+    
+    return user
 }
 
-export async function getAllUsersService(){
-    let allUsers = await getAllUsers()
+//Service to handle response after request to get all users
+export async function getAllUsersService(query){
+    let allUsers:any = await getAllUsers(query)      
 
-    if(allUsers && allUsers.rows.length)
-            return allUsers.rows.map(sqlUserToJsUser)
+    if(allUsers[0].rows && allUsers[0].rows.length)
+            return [allUsers[0].rows.map(sqlUserToJsUser), allUsers[1].rows[0].count]
     else return sendError(true, 'Users not found')
 }
 
+//Service to handle response after request to get user by id
 export async function getUserByIdService(id){
     let userById = await getUserById(id)
 
-    if(userById && userById.rows.length)
+    if(userById.rows && userById.rows.length)
             return sqlUserToJsUser(userById.rows[0])
-    else return sendError(true, 'User not found')
+    return sendError(true, 'Users not found')
 }
 
+//Service to handle response after updating a user
 export async function patchUserService(body){
-    return await patchUser(body)
-}
-
-export async function getReimbursementByStatusService(req){
-    let reimbByStatus = await getReimbursementByStatus(req)
-
-    if(reimbByStatus && reimbByStatus.rows.length)
-        return reimbByStatus.rows.map(sqlReimbursementToJs)
-    else return sendError(true, 'Reimbursements not found')
-}
-
-export async function getReimbursementByUserService(req){
-    let reimbByUser = await getReimbursementByUser(req)
-
-    if(reimbByUser && reimbByUser.rows.length)
-        return reimbByUser.rows.map(sqlReimbursementToJs)
-    else return sendError(true, 'Reimbursements not found')
-}
-
-export async function postReimbursementService(req){
-    let reimbInserted = await postReimbursement(req)
+    let patchedUser = await patchUser(body)
     
-    if(reimbInserted && reimbInserted.rows.length)
-            return sqlReimbursementToJs(reimbInserted.rows[0])
-    else return sendError(true, 'Cannot get the inserted reimbursement')
+    if (patchedUser.rows && patchedUser.rows.length)
+        return sqlUserToJsUser(patchedUser.rows[0])
+    else return patchedUser
 }
 
-export async function patchReimbursementService(req){
-    let reimbPatch = await patchReimbursement(req)
-
-    if(reimbPatch && reimbPatch.rows.length)
-        return sqlReimbursementToJs(reimbPatch.rows[0])
-    else return sendError(true, 'Cannot get the patched reimbursement')
+//Service to handle response after creating a new user
+export async function createUserService(body){
+    let newUser = await createUser(body)
+    
+    if(newUser.rows && newUser.rows.length)
+        return sqlUserToJsUser(newUser.rows[0])
+    else return newUser
 }

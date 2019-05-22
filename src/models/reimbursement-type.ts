@@ -1,3 +1,4 @@
+//class for reimbursement type objects
 export class ReimbursementType{
     typeId: number // primary key
     type: string // not null, unique
