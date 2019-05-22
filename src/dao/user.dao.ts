@@ -54,6 +54,10 @@ export async function getAllUsers(page){
             query += `LIMIT $${inc} OFFSET $${inc+1} `
             queryArray.push(page.limit, page.offset)
             inc++
+        } else if(!page.limit && page.offset){
+            query += `LIMIT 10 OFFSET $${inc} `
+            queryArray.push(page.offset)
+            inc++
         }
 
         result = await client.query(query, queryArray)
@@ -83,7 +87,7 @@ export async function getUserById(id){
         let query = `SELECT * FROM "ers".users u INNER JOIN "ers".roles r ON u.roleid = r.roleid
                                 WHERE u.userid=$1`
         result = await client.query(query,[id])
-
+        
         return result
     }catch(e){
         return sendError(true, 'Internal error')

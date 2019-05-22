@@ -32,6 +32,10 @@ export async function getAllReimbursements(page){
             query += `LIMIT $${inc} OFFSET $${inc+1} `
             queryArray.push(page.limit, page.offset)
             inc++
+        } else if(!page.limit && page.offset){
+            query += `LIMIT 10 OFFSET $${inc} `
+            queryArray.push(page.offset)
+            inc++
         }
   
         result = await client.query(query, queryArray)
