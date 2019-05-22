@@ -91,6 +91,11 @@ export function validationPostReimbursement(){
             msgError += 'Invalid date format. '
         }
 
+        if(body.amount && body.amount < 0){
+            error = true
+            msgError += 'Amount must be positive. '
+        }
+
         req.newReimbursement = Reimbursement.getProp()
         
         for(let key in req.newReimbursement){
@@ -125,6 +130,11 @@ export function validationPatchReimbursement(){
         if(body.dateResolved && !moment(body.dateResolved).isValid()){
             error = true
             msgError += 'Invalid date format. '         
+        }
+
+        if(body.amount && body.amount < 0){
+            error = true
+            msgError += 'Amount must be positive. '
         }
 
         if (!error){
