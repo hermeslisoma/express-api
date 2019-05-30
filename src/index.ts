@@ -7,11 +7,17 @@ import { validationPostLogin, validationPostUser } from './middleware/user-valid
 import { loginService, createUserService } from './service/user.service';
 import jwt from 'jsonwebtoken'
 import { authentication } from './middleware/auth-middleware';
+import { corsFilter } from './middleware/cors-filter-middleware';
+import cors from 'cors'
 
 const app = express()
 
 app.use(bodyParser.json())
-
+//app.use(corsFilter)
+app.use(cors({
+    origin:'http://127.0.0.1:5500',
+    credentials: true
+}))
 //Endpoint to register a new user with
 //prior validation middleware
 app.post('/register', validationPostUser(), async (req, res) =>{
