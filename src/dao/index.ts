@@ -10,4 +10,3 @@ export const connectionPool:Pool = new Pool({
     max: 5
 })
 
-
