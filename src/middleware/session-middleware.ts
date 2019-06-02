@@ -12,5 +12,6 @@ export const sessionMiddleware = session(sess)
 
 //JWT key object
 export const secretKey = {
-    secret: process.env['ERS_JWT_KEY']
+    secret: 'secret'
+    //secret: process.env['ERS_JWT_KEY']
 }
