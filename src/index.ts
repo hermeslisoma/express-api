@@ -7,14 +7,13 @@ import { validationPostLogin, validationPostUser } from './middleware/user-valid
 import { loginService, createUserService } from './service/user.service';
 import jwt from 'jsonwebtoken'
 import { authentication } from './middleware/auth-middleware';
-import { corsFilter } from './middleware/cors-filter-middleware';
 import cors from 'cors'
 
 const app = express()
 
 app.use(bodyParser.json())
 app.use(cors({
-    origin:'http://localhost:5500',
+    origin: 'http://localhost:3000',
     credentials: true
 }))
 
