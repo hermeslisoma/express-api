@@ -17,6 +17,7 @@ app.use(cors({
     origin:'http://localhost:3000',
     credentials: true
 }))
+
 //Endpoint to register a new user with
 //prior validation middleware
 app.post('/register', validationPostUser(), async (req, res) =>{
