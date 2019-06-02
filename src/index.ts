@@ -13,9 +13,8 @@ import cors from 'cors'
 const app = express()
 
 app.use(bodyParser.json())
-//app.use(corsFilter)
 app.use(cors({
-    origin:'http://127.0.0.1:5500',
+    origin:'http://localhost:3000',
     credentials: true
 }))
 //Endpoint to register a new user with
@@ -61,6 +60,6 @@ app.use((req, res) => {
     res.sendStatus(404)
 })
 
-app.listen('3000',() => {
+app.listen('3030',() => {
     console.log('ERS has started')
 })
