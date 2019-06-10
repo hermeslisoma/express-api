@@ -23,9 +23,9 @@ export async function login(username:string, password:string){
 
         return result
     }catch(e){
-        console.log(e);
+        //console.log(e);
         
-        return sendError(true, e)
+        //return sendError(true, e)
         //return e
     }finally{
         client && client.release()
