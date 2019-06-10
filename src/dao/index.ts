@@ -9,3 +9,13 @@ export const connectionPool:Pool = new Pool({
     port: 5432,
     max: 5
 })
+
+console.log({
+    user: process.env['ERS_DB_USER'],
+    host: process.env['ERS_DB_HOST'],
+    database: process.env['ERS_DB_NAME'],
+    password: process.env['ERS_DB_PASS'],
+    port: 5432,
+    max: 5
+});
+
