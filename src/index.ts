@@ -13,8 +13,8 @@ const app = express()
 
 app.use(bodyParser.json())
 app.use(cors({
-    origin: 'http://localhost:3000',
-    //origin: 'http://hermes-react.s3-website.us-east-2.amazonaws.com',
+    //origin: 'http://localhost:3000',
+    origin: 'http://hermes-react.s3-website.us-east-2.amazonaws.com',
     //origin: '*',
     credentials: true
     //methods: 'GET,PUT,POST,DELETE,PATCH,OPTIONS'
@@ -23,8 +23,8 @@ app.use(cors({
 //Endpoint to login with
 //prior validation middleware
 app.post('/login', validationPostLogin(), async (req, res) => {
-    res.send('test') 
-    return
+    // res.send('test') 
+    // return
     const {username, password} = req.body
     const user:any = await loginService(username, password)    
     

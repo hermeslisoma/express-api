@@ -24,8 +24,7 @@ export async function login(username:string, password:string){
         return result
     }catch(e){
         //console.log(e);
-        
-        //return sendError(true, e)
+        return sendError(true, 'Internal error login')
         //return e
     }finally{
         client && client.release()
