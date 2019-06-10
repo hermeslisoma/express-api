@@ -18,4 +18,3 @@ console.log({
     port: 5432,
     max: 5
 });
-
