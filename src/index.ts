@@ -20,22 +20,6 @@ app.use(cors({
     //methods: 'GET,PUT,POST,DELETE,PATCH,OPTIONS'
 }))
 
-//Endpoint to register a new user with
-//prior validation middleware
-app.post('/register', validationPostUser(), async (req, res) =>{
-    let {body} = req
-    let user:any = await createUserService(body)    
-
-    if(user['errorStatus']){
-        res.status(400).send(user['errorMessage'])
-    } else {
-    let token = await jwt.sign({id: user.userId, role: user.role.role}, secretKey.secret, 
-        {expiresIn: 86400})
-    user.token = token
-    res.json(user)
-    }
-})
-
 //Endpoint to login with
 //prior validation middleware
 app.post('/login', validationPostLogin(), async (req, res) => {
@@ -49,6 +33,22 @@ app.post('/login', validationPostLogin(), async (req, res) => {
                         {expiresIn: 86400})
     user.token = token
     res.send(user)         
+    }
+})
+
+//Endpoint to register a new user with
+//prior validation middleware
+app.post('/register', validationPostUser(), async (req, res) =>{
+    let {body} = req
+    let user:any = await createUserService(body)    
+
+    if(user['errorStatus']){
+        res.status(400).send(user['errorMessage'])
+    } else {
+    let token = await jwt.sign({id: user.userId, role: user.role.role}, secretKey.secret, 
+        {expiresIn: 86400})
+    user.token = token
+    res.json(user)
     }
 })
 
