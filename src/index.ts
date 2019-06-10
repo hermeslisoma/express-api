@@ -13,8 +13,10 @@ const app = express()
 
 app.use(bodyParser.json())
 app.use(cors({
-    origin: 'http://localhost:3000',
+    //origin: 'http://localhost:3000',
+    origin: 'http://hermes-react.s3-website.us-east-2.amazonaws.com',
     credentials: true
+    //methods: 'GET,PUT,POST,DELETE,PATCH,OPTIONS'
 }))
 
 //Endpoint to register a new user with

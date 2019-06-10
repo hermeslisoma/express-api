@@ -26,7 +26,7 @@ export function jsUserToSqlUser(user){
 }
 
 //Converter from sql reimbursement object to js reimbursement object
-export function sqlReimbursementToJs(sqlreimb){
+export function sqlReimbursementToJs(sqlreimb){   
     let status:ReimbursementStatus = {
         statusId: sqlreimb.statusid,
         status: sqlreimb.status
@@ -36,22 +36,35 @@ export function sqlReimbursementToJs(sqlreimb){
         type: sqlreimb.typereimb
     }
     let author:User = {
-        userId: sqlreimb.userid,
-        username: sqlreimb.username,
+        userId: sqlreimb.authoruserid,
+        username: sqlreimb.authorusername,
         password: '',
-        firstName: sqlreimb.firstname,
-        lastName: sqlreimb.lastname,
-        email: sqlreimb.email,
+        firstName: sqlreimb.authorfirstname,
+        lastName: sqlreimb.authorlastname,
+        email: sqlreimb.authoremail,
         role: {
-            roleId: sqlreimb.roleid,
-            role: sqlreimb.userrole
+            roleId: sqlreimb.authorroleid,
+            role: sqlreimb.authorrole
+        }
+    }
+    let resolver:User = {
+        userId: sqlreimb.resolveruserid,
+        username: sqlreimb.resolverusername,
+        password: '',
+        firstName: sqlreimb.resolverfirstname,
+        lastName: sqlreimb.resolverlastname,
+        email: sqlreimb.resolveremail,
+        role: {
+            roleId: sqlreimb.resolverroleid,
+            role: sqlreimb.resolverrole
         }
     }
     delete author.password
+    delete resolver.password
     return new Reimbursement(sqlreimb.reimbursementid, author, sqlreimb.amount, 
                             moment(sqlreimb.datesubmitted).format('YYYY-MM-DD'),
                             moment(sqlreimb.dateresolved).format('YYYY-MM-DD'),
-                            sqlreimb.description, sqlreimb.resolver, status, type)
+                            sqlreimb.description, resolver, status, type)
 }
 
 //Converter from js reimbursement object to sql reimbursement object

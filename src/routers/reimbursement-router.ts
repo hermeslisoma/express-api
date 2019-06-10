@@ -1,14 +1,14 @@
 import express from 'express'
 import { authorization } from '../middleware/auth-middleware';
-import { validationPostReimbursement, validationPatchReimbursement, validationGetReimbursement, validationPageReimbursement } from '../middleware/reimbursement-validation-middleware';
-import { getReimbursementByStatusService, getReimbursementByUserService, postReimbursementService, patchReimbursementService, getAllReimbursementsService } from '../service/reimbursement.service';
+import { validationPostReimbursement, validationPatchReimbursement, validationGetReimbursement, validationPageReimbursement, validationGetReimbursementById } from '../middleware/reimbursement-validation-middleware';
+import { getReimbursementByStatusService, getReimbursementByUserService, postReimbursementService, patchReimbursementService, getAllReimbursementsService, getReimbursementByIdService } from '../service/reimbursement.service';
 
 export const reimbursementRouter = express.Router()
 
 //Endpoint to get all reimbursements with
 //prior authorization and validation middlewares
 //Optional query string for paging and sorting
-reimbursementRouter.get('', [authorization('finance-manager'), validationPageReimbursement(), async (req, res) => {
+reimbursementRouter.get('', [authorization(['finance-manager','admin'],'user'), validationPageReimbursement(), async (req, res) => {
     let {query} = req
     let reimbursements = await getAllReimbursementsService(query)
 
@@ -20,7 +20,7 @@ reimbursementRouter.get('', [authorization('finance-manager'), validationPageRei
 //Endpoint to get reimbursements by status with
 //prior Authorization and validation middlewares
 //optional search by date range
-reimbursementRouter.get('/status/:statusId/date-submitted',[authorization('finance-manager'),
+reimbursementRouter.get('/status/:statusId/date-submitted',[authorization(['finance-manager','admin']),
                                         validationGetReimbursement('statusId'), async (req,res) => {
     let reimbByStatus = await getReimbursementByStatusService(req)
 
@@ -32,7 +32,7 @@ reimbursementRouter.get('/status/:statusId/date-submitted',[authorization('finan
 //Endpoint to get reimbursements by user with
 //prior Authorization and validation middlewares
 //optional search by date range
-reimbursementRouter.get('/author/userId/:userId/date-submitted',[authorization('finance-manager','userId'),
+reimbursementRouter.get('/author/userId/:userId/date-submitted',[authorization(['finance-manager','admin'],'userId'),
                                             validationGetReimbursement('userId'), async (req, res) => {
     let reimbByUser = await getReimbursementByUserService(req)
 
@@ -43,7 +43,7 @@ reimbursementRouter.get('/author/userId/:userId/date-submitted',[authorization('
 
 //Endpoint to post reimbursement with
 //prior Authorization and validation middleware
-reimbursementRouter.post('',[authorization('finance-manager','author'), validationPostReimbursement(), 
+reimbursementRouter.post('',[authorization(['finance-manager','admin'],'author'), validationPostReimbursement(), 
                             async (req, res) => {
 
     let postReimb = await postReimbursementService(req)
@@ -52,9 +52,20 @@ reimbursementRouter.post('',[authorization('finance-manager','author'), validati
     else res.status(201).send(postReimb)     
 }])
 
+//Endpoint to get a reimbursement by id with
+//prior Authorization, validation middlewares
+reimbursementRouter.get('/:id',[authorization(['finance-manager','admin']), validationGetReimbursementById(), async (req,res) => {
+    let id = +req.params.id
+    let reimb = await getReimbursementByIdService(id)
+    
+    if(reimb['errorStatus'])
+        res.status(400).send(reimb['errorMessage'])    
+    else res.json(reimb)   
+}])
+
 //Endpoint to patch reimbursement with
 //prior Authorization and validation middleware
-reimbursementRouter.patch('',[authorization('finance-manager'), validationPatchReimbursement(), 
+reimbursementRouter.patch('',[authorization(['finance-manager','admin']), validationPatchReimbursement(), 
                             async (req, res) => {
     let patchReimb = await patchReimbursementService(req)
     

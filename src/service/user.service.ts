@@ -16,8 +16,8 @@ export async function loginService(username:string, password:string){
 export async function getAllUsersService(query){
     let allUsers:any = await getAllUsers(query)      
 
-    if(allUsers[0].rows && allUsers[0].rows.length)
-            return [allUsers[0].rows.map(sqlUserToJsUser), allUsers[1].rows[0].count]
+    if(allUsers && allUsers[0].rows && allUsers[0].rows.length)
+            return [allUsers[0].rows.map(sqlUserToJsUser), allUsers[1].rows[0].count, allUsers[2], allUsers[3]]
     else return sendError(true, 'Users not found')
 }
 
@@ -27,7 +27,7 @@ export async function getUserByIdService(id){
 
     if(userById.rows && userById.rows.length)
             return sqlUserToJsUser(userById.rows[0])
-    return sendError(true, 'Users not found')
+    return sendError(true, 'User not found')
 }
 
 //Service to handle response after updating a user

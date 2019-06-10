@@ -45,7 +45,7 @@ export async function getAllUsers(page){
         }
 
         if(!page.limit && !page.offset){
-            query += `LIMIT 10 OFFSET 0 `
+            //query += `LIMIT 10 OFFSET 0 `
         } else if (page.limit && !page.offset){
             query += `LIMIT $${inc} `
             queryArray.push(page.limit)
@@ -69,7 +69,10 @@ export async function getAllUsers(page){
         }
 
         count = await client.query(`SELECT COUNT(*) FROM "ers".users`)
-        return [result,count]
+        // console.log(page.limit);
+        // console.log(page.offset);
+
+        return [result, count, page.limit || 0, page.offset || 0]
 
     }catch(e){
         return sendError(true, 'Internal error')

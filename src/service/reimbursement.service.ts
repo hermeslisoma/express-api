@@ -1,4 +1,4 @@
-import { getReimbursementByStatus, getReimbursementByUser, postReimbursement, patchReimbursement, getAllReimbursements } from "../dao/reimbursement.dao";
+import { getReimbursementByStatus, getReimbursementByUser, postReimbursement, patchReimbursement, getAllReimbursements, getReimbursementById } from "../dao/reimbursement.dao";
 import { sqlReimbursementToJs } from "../util/user-converter";
 import { sendError } from "../util/error";
 
@@ -35,6 +35,15 @@ export async function postReimbursementService(req){
     if(reimbInserted.rows && reimbInserted.rows.length)
         return sqlReimbursementToJs(reimbInserted.rows[0])
     return reimbInserted
+}
+
+//Service to handle response after request to get reimbursement by id
+export async function getReimbursementByIdService(id){
+    let reimbById = await getReimbursementById(id)
+
+    if(reimbById.rows && reimbById.rows.length)
+            return sqlReimbursementToJs(reimbById.rows[0])
+    return sendError(true, 'Reimbursement not found')
 }
 
 //Service to handle the return value after updating a reimbursement

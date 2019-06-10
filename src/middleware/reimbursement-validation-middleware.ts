@@ -27,7 +27,22 @@ export function validationPageReimbursement(){
         if(query.offset && query.offset < 0){
             error = true
             msgError += 'offset must be positive. '
-        }     
+        } 
+        
+        if(query.status && isNaN(+query.status)){
+            error = true
+            msgError += 'offset is not a number. '
+        }
+
+        if(query.status && (query.status < 1 || query.status > 3)){
+            error = true
+            msgError += 'Status number should be between 1 and 3. '
+        }
+
+        if(query.user && isNaN(+query.user)){
+            error = true
+            msgError += 'user id is not a number. '
+        }
 
         if(query.sort){
             let reimbSort = Reimbursement.getProp()
@@ -108,6 +123,26 @@ export function validationPostReimbursement(){
         if(!error){
             body.dateSubmitted = new Date(body.dateSubmitted)
             body.dateResolved = body.dateSubmitted
+            next()
+        } else {
+            res.status(400).send(msgError)
+        }
+    }
+}
+
+//Middleware for validation of reimbursement input id
+export function validationGetReimbursementById(){
+    return (req,res,next) =>{
+        let id = +req.params.id
+        let error = false
+        let msgError = ''
+
+        if(isNaN(id)){
+            error = true
+            msgError += 'id: is not a number. '
+        }
+
+        if(!error){
             next()
         } else {
             res.status(400).send(msgError)

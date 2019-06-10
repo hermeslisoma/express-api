@@ -138,7 +138,7 @@ export function validationPatchUser(){
         let {body} = req
         let error = false
         let msgError = ''
-
+        
         if (!body.userId){
             error = true
             msgError += 'Missing user id. '
