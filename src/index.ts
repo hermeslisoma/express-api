@@ -14,7 +14,7 @@ const app = express()
 app.use(bodyParser.json())
 app.use(cors({
     //origin: 'http://localhost:3000',
-    origin: 'http://ers-react.s3-website.us-east-2.amazonaws.com',
+    origin: ['http://localhost:3000','http://ers-react.s3-website.us-east-2.amazonaws.com'],
     credentials: true
     //methods: 'GET,PUT,POST,DELETE,PATCH,OPTIONS'
 }))
