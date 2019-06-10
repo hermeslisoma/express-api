@@ -23,7 +23,8 @@ export async function login(username:string, password:string){
 
         return result
     }catch(e){
-        return sendError(true, 'Internal error')
+        //return sendError(true, 'Internal error')
+        return e
     }finally{
         client && client.release()
     }
