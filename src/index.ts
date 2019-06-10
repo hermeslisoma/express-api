@@ -23,6 +23,8 @@ app.use(cors({
 //Endpoint to login with
 //prior validation middleware
 app.post('/login', validationPostLogin(), async (req, res) => {
+    res.send('test') 
+    return
     const {username, password} = req.body
     const user:any = await loginService(username, password)    
     
